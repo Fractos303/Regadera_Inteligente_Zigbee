@@ -1,0 +1,19 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.extensionActivationMode": "always",
+  "idf.openOcdConfigs": [
+    "board/esp32h2-builtin.cfg"
+  ],
+  "idf.port": "/dev/ttyACM0",
+  "idf.currentSetup": "/home/fractos/.espressif/v6.0.2/esp-idf",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32h2"
+  },
+  "clangd.path": "/home/fractos/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/datos/Proyectos/ESP/Regadera_Zigbee_WS/Regadera_Zigbee/build"
+  ],
+  "idf.flashType": "UART"
+}
