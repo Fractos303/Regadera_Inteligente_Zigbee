@@ -18,7 +18,8 @@
 #include "nvs_flash.h"
 #include "ha/esp_zigbee_ha_standard.h"
 #include "zcl_utility.h"
-#include "esp_zb_valve.h"
+
+#include "zigbee_stack.h"
 
 #include "zigbee_endpoint.h"
 #include "zigbee_config.h"
