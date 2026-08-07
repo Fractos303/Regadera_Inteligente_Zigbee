@@ -15,5 +15,6 @@
     "--query-driver=**",
     "--compile-commands-dir=/datos/Proyectos/ESP/Regadera_Zigbee_WS/Regadera_Zigbee/build"
   ],
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "C_Cpp.errorSquiggles": "disabled"
 }

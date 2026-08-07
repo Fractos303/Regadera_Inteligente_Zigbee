@@ -1,0 +1,12 @@
+#pragma once
+
+#include "esp_err.h"
+
+esp_err_t status_led_init(void);
+
+esp_err_t status_led_on(void);
+esp_err_t status_led_off(void);
+
+esp_err_t status_led_set_rgb(uint8_t red, uint8_t green, uint8_t blue);
+
+esp_err_t status_led_blink(uint8_t times, uint32_t period_ms);

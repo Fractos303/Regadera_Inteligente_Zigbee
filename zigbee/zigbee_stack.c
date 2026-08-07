@@ -23,12 +23,15 @@
 
 #include "zigbee_endpoint.h"
 #include "zigbee_config.h"
+#include "identify.h"
+#include "device_feedback.h" 
+#include "status_led.h"
 
 #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
-static const char *TAG = "ESP_ZB_ON_OFF_LIGHT";
+static const char *TAG = "REGADERA_ZB_STACK";
 /********************* Define functions **************************/
 static esp_err_t deferred_driver_init(void)
 {
@@ -146,17 +149,12 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_init(&zb_nwk_cfg);
     //REVIEW
     esp_zb_ep_list_t *ep = zigbee_create_endpoint();
-    zcl_basic_manufacturer_info_t info = {
-        .manufacturer_name = ESP_MANUFACTURER_NAME,
-        .model_identifier = ESP_MODEL_IDENTIFIER,
-    };
 
     // esp_zcl_utility_add_ep_basic_manufacturer_info(ep, HA_ESP_VALVE_ENDPOINT, &info);   //DEPRECATED duplicidad de basic_cluster
-    esp_zb_device_register(ep);  
+    esp_zb_device_register(ep);  //REVIEW sustituir ep 
     
     ESP_LOGI(TAG, "Endpoint registered"); //DEBUG
     
-    //REVIEW sustituir ep 
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
 
@@ -175,5 +173,27 @@ void app_main(void)
     };
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
-    xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 5, NULL);
+
+
+    //DEPRECATED: prueba de la función de identificación
+    ESP_ERROR_CHECK(status_led_init());
+
+    ESP_ERROR_CHECK(identify_init());
+
+    ESP_ERROR_CHECK(identify_start());
+
+    while (true)
+    {
+        device_feedback_boot();
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        device_feedback_joined();
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        device_feedback_left();
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        device_feedback_error();
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
 }
