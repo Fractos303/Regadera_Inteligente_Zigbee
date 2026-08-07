@@ -40,3 +40,5 @@
     {                                                           \
         .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,   \
     }
+
+void zigbee_start(void);

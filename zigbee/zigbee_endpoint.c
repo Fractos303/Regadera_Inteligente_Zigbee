@@ -52,7 +52,7 @@ esp_zb_ep_list_t *zigbee_create_endpoint(void)
         groups,
         ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 
-    //NOTE:
+    //NOTE: Scenes cluster is required for the device to be discoverable by the Zigbee network
     esp_zb_attribute_list_t *scenes = esp_zb_scenes_cluster_create(NULL);
 
     esp_zb_cluster_list_add_scenes_cluster(

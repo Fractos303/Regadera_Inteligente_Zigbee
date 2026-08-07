@@ -25,7 +25,7 @@ esp_err_t ws2812_driver_set_rgb(uint8_t led, uint8_t r, uint8_t g, uint8_t b)
 {
     // NOTE: El LED RGB integrado de esta placa utiliza orden GRB 
     ESP_ERROR_CHECK(led_strip_set_pixel(s_led_strip, led, g, r, b));
-    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
+    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));                //NOTE: Esta función bloquea hasta que se complete la actualización de la tira de LED
     ESP_LOGI(TAG, "LED %d -> (%d,%d,%d)", led, r, g, b);
     return ESP_OK;
 }
@@ -33,7 +33,7 @@ esp_err_t ws2812_driver_set_rgb(uint8_t led, uint8_t r, uint8_t g, uint8_t b)
 esp_err_t ws2812_driver_clear(void)
 {
     ESP_ERROR_CHECK(led_strip_clear(s_led_strip));
-    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));
+    ESP_ERROR_CHECK(led_strip_refresh(s_led_strip));                //NOTE:  led_strip_refresh() no es reentrante. No debe llamarse simultáneamente desde varias tareas.
     return ESP_OK;
 }
 

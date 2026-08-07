@@ -27,3 +27,5 @@ valve_state_t valve_get_state(void)
 {
     return state;
 }
+
+//TODO:Sustituir este estado software por el control real del servomotor.

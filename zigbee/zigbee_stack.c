@@ -123,7 +123,26 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             }
         }
     }
-    ESP_LOGI(TAG, "Returning ESP_OK");
+
+    //NOTE: Handle Identify cluster attribute changes
+    if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY) {
+
+        if (message->attribute.id == ESP_ZB_ZCL_ATTR_IDENTIFY_IDENTIFY_TIME_ID) {
+
+            uint16_t identify_time = *(uint16_t *)message->attribute.data.value;
+
+            ESP_LOGI(TAG,"Identify time: %u", identify_time);
+
+            if (identify_time > 0)
+            {
+                identify_start(identify_time);
+            }
+            else
+            {
+                identify_stop();
+            }
+        }
+    }
     return ret;
 }
 
@@ -136,13 +155,11 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
         break;
 
     case ESP_ZB_CORE_CMD_DEFAULT_RESP_CB_ID:
-        ESP_LOGI(TAG, "DEFAULT_RESP");
+        //ESP_LOGI(TAG, "DEFAULT_RESP");
         break;
     case ESP_ZB_CORE_IDENTIFY_EFFECT_CB_ID:     //NOTE: This callback is triggered when the Identify cluster receives an effect command
-        ESP_LOGI(TAG, "IDENTIFY_EFFECT");
-
-        identify_start();
-
+        //ESP_LOGI(TAG, "IDENTIFY");
+        //identify_start();
         break;
 
     default:
@@ -157,13 +174,12 @@ static void esp_zb_task(void *pvParameters)
     /* initialize Zigbee stack */
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
-    //REVIEW
-    esp_zb_ep_list_t *ep = zigbee_create_endpoint();
-
-    // esp_zcl_utility_add_ep_basic_manufacturer_info(ep, HA_ESP_VALVE_ENDPOINT, &info);   //DEPRECATED duplicidad de basic_cluster
-    esp_zb_device_register(ep);  //REVIEW sustituir ep 
     
-    ESP_LOGI(TAG, "Endpoint registered"); //DEBUG
+    esp_zb_ep_list_t *endpoint_list = zigbee_create_endpoint();
+
+    esp_zb_device_register(endpoint_list);
+    
+    ESP_LOGI(TAG, "Endpoint registered");
     
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
@@ -175,13 +191,17 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_stack_main_loop();
 }
 
-void app_main(void)
+/**
+ * Inicializa la plataforma Zigbee y lanza la tarea principal
+ * del stack Zigbee.
+ */
+void zigbee_start(void)
 {
     esp_zb_platform_config_t config = {
         .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
-        .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
+        .host_config  = ESP_ZB_DEFAULT_HOST_CONFIG(),
     };
-    ESP_ERROR_CHECK(nvs_flash_init());
+
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
 
     xTaskCreate(esp_zb_task, "esp_zb_task", 4096, NULL, 5, NULL);
