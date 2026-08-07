@@ -26,6 +26,7 @@
 #include "identify.h"
 #include "device_feedback.h" 
 #include "status_led.h"
+#include "water_level.h"
 
 #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
@@ -40,6 +41,8 @@ static esp_err_t deferred_driver_init(void)
     ESP_ERROR_CHECK(valve_init());
 
     ESP_ERROR_CHECK(identify_init());
+
+    ESP_ERROR_CHECK(water_level_init());
 
     device_feedback_boot();
     return ESP_OK;
