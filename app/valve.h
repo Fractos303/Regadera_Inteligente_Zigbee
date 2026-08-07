@@ -1,12 +1,12 @@
 #pragma once
 
-#include <stdbool.h>
 #include "esp_err.h"
 
 typedef enum
 {
     VALVE_CLOSED = 0,
     VALVE_OPEN
+
 } valve_state_t;
 
 esp_err_t valve_init(void);

@@ -1,31 +1,47 @@
 #include "valve.h"
+#include "servo.h"
+
 #include "esp_log.h"
 
 static const char *TAG = "VALVE";
 
-static valve_state_t state = VALVE_CLOSED;
+static valve_state_t current_state = VALVE_CLOSED;
 
 esp_err_t valve_init(void)
 {
-    ESP_LOGI(TAG,"Valve initialized");
+    ESP_ERROR_CHECK(servo_init());
+
+    current_state = VALVE_CLOSED;
+
+    ESP_LOGI(TAG, "Valve initialized");
+
     return ESP_OK;
 }
 
-esp_err_t valve_set_state(valve_state_t new_state)
+esp_err_t valve_set_state(valve_state_t state)
 {
-    state = new_state;
+    if (state == current_state)
+    {
+        return ESP_OK;
+    }
 
-    ESP_LOGI(TAG,
-             "Valve %s",
-             state == VALVE_OPEN ?
-             "OPEN" :
-             "CLOSED");
+    if (state == VALVE_OPEN)
+    {
+        ESP_ERROR_CHECK(servo_open());
+        ESP_LOGI(TAG, "Valve OPEN");
+    }
+    else
+    {
+        ESP_ERROR_CHECK(servo_close());
+        ESP_LOGI(TAG, "Valve CLOSED");
+    }
+
+    current_state = state;
+
     return ESP_OK;
 }
 
 valve_state_t valve_get_state(void)
 {
-    return state;
+    return current_state;
 }
-
-//TODO:Sustituir este estado software por el control real del servomotor.

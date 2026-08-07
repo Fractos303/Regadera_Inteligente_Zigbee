@@ -35,7 +35,7 @@
  * En el futuro se investigará qué Device ID representa mejor
  * una válvula o un sistema de riego.
  */
-#define HA_DEVICE_ID                   ESP_ZB_HA_ON_OFF_LIGHT_DEVICE_ID
+#define HA_DEVICE_ID                   ESP_ZB_HA_ON_OFF_SWITCH_DEVICE_ID
 
 /**
  * Versión del dispositivo.
