@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "esp_err.h"
 
 typedef enum
 {
@@ -8,8 +9,8 @@ typedef enum
     VALVE_OPEN
 } valve_state_t;
 
-void valve_init(void);
+esp_err_t valve_init(void);
 
-void valve_set_state(valve_state_t state);
+esp_err_t valve_set_state(valve_state_t state);
 
 valve_state_t valve_get_state(void);

@@ -5,12 +5,13 @@ static const char *TAG = "VALVE";
 
 static valve_state_t state = VALVE_CLOSED;
 
-void valve_init(void)
+esp_err_t valve_init(void)
 {
     ESP_LOGI(TAG,"Valve initialized");
+    return ESP_OK;
 }
 
-void valve_set_state(valve_state_t new_state)
+esp_err_t valve_set_state(valve_state_t new_state)
 {
     state = new_state;
 
@@ -19,6 +20,7 @@ void valve_set_state(valve_state_t new_state)
              state == VALVE_OPEN ?
              "OPEN" :
              "CLOSED");
+    return ESP_OK;
 }
 
 valve_state_t valve_get_state(void)

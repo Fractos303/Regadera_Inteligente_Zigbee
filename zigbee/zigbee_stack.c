@@ -35,7 +35,12 @@ static const char *TAG = "REGADERA_ZB_STACK";
 /********************* Define functions **************************/
 static esp_err_t deferred_driver_init(void)
 {
-    valve_init();
+    ESP_ERROR_CHECK(status_led_init());
+
+    ESP_ERROR_CHECK(valve_init());
+
+    ESP_ERROR_CHECK(identify_init());
+
     return ESP_OK;
 }
 
@@ -78,10 +83,18 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      extended_pan_id[7], extended_pan_id[6], extended_pan_id[5], extended_pan_id[4],
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel(), esp_zb_get_short_address());
+            device_feedback_joined();
         } else {
             ESP_LOGI(TAG, "Network steering was not successful (status: %s)", esp_err_to_name(err_status));
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
+            device_feedback_error();
         }
+        break;
+    case ESP_ZB_ZDO_SIGNAL_LEAVE:   //NOTE: This signal is generated when the device leaves the Zigbee network
+        ESP_LOGI(TAG, "Device left network");
+
+        device_feedback_left();
+
         break;
     default:
         ESP_LOGI(TAG, "ZDO signal: %s (0x%x), status: %s", esp_zb_zdo_signal_to_string(sig_type), sig_type,
@@ -119,24 +132,20 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     switch (callback_id) {
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
         ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
-        ESP_LOGI(TAG, "SET_ATTR_VALUE"); //DEBUG
-        break;
-
-    case ESP_ZB_CORE_CMD_READ_ATTR_RESP_CB_ID: //DEBUG
-        ESP_LOGI(TAG, "READ_ATTR_RESP");
-        break;
-
-    case ESP_ZB_CORE_CMD_REPORT_CONFIG_RESP_CB_ID: //DEBUG
-        ESP_LOGI(TAG, "REPORT_CONFIG_RESP");
         break;
 
     case ESP_ZB_CORE_CMD_DEFAULT_RESP_CB_ID:
         ESP_LOGI(TAG, "DEFAULT_RESP");
         break;
+    case ESP_ZB_CORE_IDENTIFY_EFFECT_CB_ID:     //NOTE: This callback is triggered when the Identify cluster receives an effect command
+        ESP_LOGI(TAG, "IDENTIFY_EFFECT");
+
+        identify_start();
+
+        break;
 
     default:
-        ESP_LOGW(TAG, "Receive Zigbee action(0x%x) callback", callback_id);
-
+        ESP_LOGW(TAG, "Unhandled Zigbee callback (0x%x)", callback_id);
         break;
     }
     return ret;
@@ -145,6 +154,7 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
 static void esp_zb_task(void *pvParameters)
 {
     /* initialize Zigbee stack */
+    device_feedback_boot();
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
     //REVIEW
@@ -174,26 +184,5 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
 
-
-    //DEPRECATED: prueba de la función de identificación
-    ESP_ERROR_CHECK(status_led_init());
-
-    ESP_ERROR_CHECK(identify_init());
-
-    ESP_ERROR_CHECK(identify_start());
-
-    while (true)
-    {
-        device_feedback_boot();
-        vTaskDelay(pdMS_TO_TICKS(1500));
-
-        device_feedback_joined();
-        vTaskDelay(pdMS_TO_TICKS(1500));
-
-        device_feedback_left();
-        vTaskDelay(pdMS_TO_TICKS(1500));
-
-        device_feedback_error();
-        vTaskDelay(pdMS_TO_TICKS(2000));
-    }
+    xTaskCreate(esp_zb_task, "esp_zb_task", 4096, NULL, 5, NULL);
 }
