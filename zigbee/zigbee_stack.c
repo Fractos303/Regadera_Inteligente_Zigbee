@@ -41,6 +41,7 @@ static esp_err_t deferred_driver_init(void)
 
     ESP_ERROR_CHECK(identify_init());
 
+    device_feedback_boot();
     return ESP_OK;
 }
 
@@ -154,7 +155,6 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
 static void esp_zb_task(void *pvParameters)
 {
     /* initialize Zigbee stack */
-    device_feedback_boot();
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
     //REVIEW
