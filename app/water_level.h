@@ -18,6 +18,12 @@ esp_err_t water_level_init(void);
  */
 float water_level_get(void);
 
+/**
+ * @brief Actualiza la lectura del nivel (simulada o real) y la devuelve.
+ */
+float water_level_update(void);
+
+
 #ifdef __cplusplus
 }
 #endif

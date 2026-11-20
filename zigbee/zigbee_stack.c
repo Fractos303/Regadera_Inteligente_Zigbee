@@ -32,8 +32,37 @@
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
+
+#define WATER_LEVEL_UPDATE_MS   10000           //REVIEW cada 10 s 
+
 static const char *TAG = "REGADERA_ZB_STACK";
 /********************* Define functions **************************/
+
+
+//DEMO ?
+static void water_level_report_cb(uint8_t param)
+{
+    float level = water_level_update();
+
+    esp_zb_zcl_status_t st = esp_zb_zcl_set_attribute_val(
+        HA_ESP_VALVE_ENDPOINT,
+        ESP_ZB_ZCL_CLUSTER_ID_ANALOG_INPUT,
+        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ESP_ZB_ZCL_ATTR_ANALOG_INPUT_PRESENT_VALUE_ID,
+        &level,
+        false);
+
+    if (st != ESP_ZB_ZCL_STATUS_SUCCESS) {
+        ESP_LOGW(TAG, "No se pudo actualizar el nivel de agua (status 0x%x)", st);
+    } else {
+        ESP_LOGI(TAG, "Nivel de agua: %.1f %%", level);
+    }
+
+    esp_zb_scheduler_alarm(water_level_report_cb, 0, WATER_LEVEL_UPDATE_MS);  // se reprograma
+}
+
+
+
 static esp_err_t deferred_driver_init(void)
 {
     ESP_ERROR_CHECK(status_led_init());
@@ -43,6 +72,12 @@ static esp_err_t deferred_driver_init(void)
     ESP_ERROR_CHECK(identify_init());
 
     ESP_ERROR_CHECK(water_level_init());
+
+    static bool water_level_timer_started = false;
+    if (!water_level_timer_started) {
+        esp_zb_scheduler_alarm(water_level_report_cb, 0, WATER_LEVEL_UPDATE_MS);
+        water_level_timer_started = true;
+    }
 
     device_feedback_boot();
     return ESP_OK;

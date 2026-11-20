@@ -14,6 +14,9 @@ idf_component_register(
 
     PRIV_REQUIRES
         nvs_flash
+        esp_adc
+        esp_driver_gpio
         esp_driver_uart
+        esp_driver_i2c
         ieee802154
 )
