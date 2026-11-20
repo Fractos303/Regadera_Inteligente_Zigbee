@@ -84,6 +84,24 @@ esp_zb_ep_list_t *zigbee_create_endpoint(void)
 
     esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
 
+    // REVIEW: Add attributes to the Analog Input cluster
+        esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
+
+    /* ZHA exige 'description' + ('engineering_units' o 'application_type') para crear la entidad */
+    static char ai_description[] = "\x0A""Nivel agua";   // ZCL string: 1er byte = longitud (10)
+    static uint16_t ai_units = 98;                        // BACnet 98 = PERCENT -> HA muestra "%"
+    static float ai_resolution = 1.0f;                    // opcional: 0 decimales en HA
+    static float ai_min = 0.0f, ai_max = 100.0f;          // opcionales
+
+    esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_DESCRIPTION_ID, ai_description);
+    esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_ENGINEERING_UNITS_ID, &ai_units);
+    esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_RESOLUTION_ID, &ai_resolution);
+    esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_MIN_PRESENT_VALUE_ID, &ai_min);
+    esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_MAX_PRESENT_VALUE_ID, &ai_max);
+
+    esp_zb_cluster_list_add_analog_input_cluster(cluster_list, analog_input, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    //
+
     esp_zb_cluster_list_add_analog_input_cluster(
         cluster_list,
         analog_input,
