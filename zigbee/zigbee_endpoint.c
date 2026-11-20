@@ -82,10 +82,8 @@ esp_zb_ep_list_t *zigbee_create_endpoint(void)
 
     analog_input_cfg.present_value = water_level_get();
 
-    esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
-
     // REVIEW: Add attributes to the Analog Input cluster
-        esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
+    esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
 
     /* ZHA exige 'description' + ('engineering_units' o 'application_type') para crear la entidad */
     static char ai_description[] = "\x0A""Nivel agua";   // ZCL string: 1er byte = longitud (10)
