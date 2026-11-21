@@ -19,4 +19,5 @@ idf_component_register(
         esp_driver_uart
         esp_driver_i2c
         ieee802154
+        esp_driver_rmt
 )

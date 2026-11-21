@@ -50,7 +50,7 @@
 /**
  * Fabricante mostrado en Home Assistant.
  */
-#define ESP_MANUFACTURER_NAME          "\x08""Fractos"
+#define ESP_MANUFACTURER_NAME          "\x07""Fractos"
 
 /**
  * Modelo mostrado en Home Assistant.

@@ -1,15 +1,19 @@
-/*
- * SPDX-FileCopyrightText: 2021-2024 Espressif Systems (Shanghai) CO LTD
+/**
+ * @file zigbee_stack.c
  *
- * SPDX-License-Identifier:  LicenseRef-Included
+ * @brief Gestión del stack Zigbee de la regadera inteligente.
  *
- * Zigbee HA_on_off_light Example
+ * - Inicializa la plataforma y el stack Zigbee (End Device).
+ * - Gestiona las señales de red: arranque, unión (steering), reinicio, salida.
+ * - Atiende las órdenes recibidas de Home Assistant (válvula On/Off, Identify).
+ * - Inicializa los módulos de la aplicación y arranca la publicación de sensores.
  *
- * This example code is in the Public Domain (or CC0 licensed, at your option.)
+ * Basado originalmente en el ejemplo HA_on_off_light de Espressif
+ * (esp-zigbee-sdk, dominio público / CC0).
  *
- * Unless required by applicable law or agreed to in writing, this
- * software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied.
+ * @author Fractos
+ *
+ * @date 2026-11-21
  */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -28,56 +32,24 @@
 #include "status_led.h"
 #include "water_level.h"
 
+#include "ambient.h"
+#include "zigbee_sensors.h"
+
 #if !defined ZB_ED_ROLE
-#error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
+#error Define ZB_ED_ROLE in idf.py menuconfig to compile the Regadera (End Device) source code.
 #endif
-
-
-#define WATER_LEVEL_UPDATE_MS   10000           //REVIEW cada 10 s 
 
 static const char *TAG = "REGADERA_ZB_STACK";
 /********************* Define functions **************************/
 
-
-//DEMO ?
-static void water_level_report_cb(uint8_t param)
-{
-    float level = water_level_update();
-
-    esp_zb_zcl_status_t st = esp_zb_zcl_set_attribute_val(
-        HA_ESP_VALVE_ENDPOINT,
-        ESP_ZB_ZCL_CLUSTER_ID_ANALOG_INPUT,
-        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-        ESP_ZB_ZCL_ATTR_ANALOG_INPUT_PRESENT_VALUE_ID,
-        &level,
-        false);
-
-    if (st != ESP_ZB_ZCL_STATUS_SUCCESS) {
-        ESP_LOGW(TAG, "No se pudo actualizar el nivel de agua (status 0x%x)", st);
-    } else {
-        ESP_LOGI(TAG, "Nivel de agua: %.1f %%", level);
-    }
-
-    esp_zb_scheduler_alarm(water_level_report_cb, 0, WATER_LEVEL_UPDATE_MS);  // se reprograma
-}
-
-
-
 static esp_err_t deferred_driver_init(void)
 {
     ESP_ERROR_CHECK(status_led_init());
-
     ESP_ERROR_CHECK(valve_init());
-
     ESP_ERROR_CHECK(identify_init());
-
     ESP_ERROR_CHECK(water_level_init());
-
-    static bool water_level_timer_started = false;
-    if (!water_level_timer_started) {
-        esp_zb_scheduler_alarm(water_level_report_cb, 0, WATER_LEVEL_UPDATE_MS);
-        water_level_timer_started = true;
-    }
+    ESP_ERROR_CHECK(ambient_init());
+    zigbee_sensors_start(); 
 
     device_feedback_boot();
     return ESP_OK;
@@ -91,7 +63,7 @@ static void bdb_start_top_level_commissioning_cb(uint8_t mode_mask)
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
     uint32_t *p_sg_p       = signal_struct->p_app_signal;
-    esp_err_t err_status = signal_struct->esp_err_status;
+    esp_err_t err_status   = signal_struct->esp_err_status;
     esp_zb_app_signal_type_t sig_type = *p_sg_p;
     switch (sig_type) {
     case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
@@ -145,7 +117,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
-    bool light_state = 0;
+    bool valve_open = 0;
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
@@ -155,9 +127,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     if (message->info.dst_endpoint == HA_ESP_VALVE_ENDPOINT) {
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF) {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
-                light_state = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state;
-                ESP_LOGI(TAG, "Valve command: %s", light_state ? "OPEN" : "CLOSE");
-                valve_set_state(light_state ? VALVE_OPEN : VALVE_CLOSED);
+                valve_open = message->attribute.data.value ? *(bool *)message->attribute.data.value : valve_open;
+                ESP_LOGI(TAG, "Valve command: %s", valve_open ? "OPEN" : "CLOSE");
+                valve_set_state(valve_open ? VALVE_OPEN : VALVE_CLOSED);
             }
         }
     }
