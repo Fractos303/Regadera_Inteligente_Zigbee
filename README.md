@@ -3,191 +3,65 @@
 
 # Regadera Inteligente Zigbee
 
-Proyecto en desarrollo de una **regadera inteligente**
-basada en un **ESP32-H2** y conectada a **Home Assistant mediante
-Zigbee**.
+Regadera inteligente para macetas basada en un **ESP32-H2** que se integra en **Home Assistant** a través de **Zigbee (ZHA)**. Riega, mide y reporta; todo desde Home Assistant y sin Wi-Fi(necesitas una red Zigbee mediante un Dougle Zigbee).
 
-## Estado actual
+> [!WARNING]
+> **Proyecto en desarrollo.** Es un prototipo personal: el código, el cableado y la estructura cambian con frecuencia y algunas partes están a medio integrar. Puedes usarlo como referencia o punto de partida, pero no esperes que funcione "tal cual" ni que esté documentado al detalle.
 
-El proyecto se encuentra en fase de prototipo.
+## Compatibilidad
 
-### Funcionalidades implementadas
-
--   [x] Dispositivo Zigbee basado en ESP32-H2.
--   [x] Integración con Home Assistant mediante ZHA.
--   [x] Control de una válvula mediante servomotor.
--   [x] Apertura y cierre de la válvula mediante el clúster Zigbee
-    `On/Off`.
--   [x] Integración del clúster estándar `Analog Input`.
--   [x] Exposición del atributo `PresentValue` del clúster
-    `Analog Input`.
--   [x] Lectura del atributo `PresentValue` desde la interfaz de
-    administración de clústeres de ZHA.
--   [x] Configuración inicial de reporting para `PresentValue`.
--   [ ] Exposición del nivel de agua como entidad visible en el panel
-    principal de Home Assistant.
--   [ ] Lectura real del sensor de nivel de agua.
--   [ ] Alimentación controlada del sensor para reducir su degradación.
--   [ ] Actualización automática y periódica del nivel de agua.
--   [ ] Automatizaciones de riego.
--   [ ] Gestión avanzada de estados, errores y seguridad.
+| | |
+| --- | --- |
+| **Microcontrolador** | ESP32-H2 (Zigbee 3.0 / IEEE 802.15.4) |
+| **Domótica** | Home Assistant, mediante la integración **ZHA** |
+| **Framework** | ESP-IDF 6.0 + `esp-zigbee-lib` / `esp-zboss-lib` 1.6 |
 
 ## Hardware
 
-### Controlador
+| Componente | Función |
+| --- | --- |
+| Bomba peristáltica 5 V (con MOSFET de nivel lógico) | Riego |
+| Célula de carga 5 kg + HX711 | Nivel del depósito medido por peso |
+| Sensor capacitivo de humedad del suelo (HW-390) | Humedad de la maceta |
+| DHT11 | Temperatura y humedad ambiente |
+| LDR | Luz ambiente |
+| LED WS2812 integrado | Estado del dispositivo |
 
--   Una placa de desarrollo con **ESP32-H2**.
--   Cable USB para alimentación, programación y monitorización.
--   Alimentación adecuada para el ESP32-H2.
+El mapa completo de pines y conexiones está en [`config/hardware_config.h`](config/hardware_config.h).
 
-### Válvula
+## Cómo funciona
 
--   Servomotor compatible con señal PWM.
--   Alimentación externa de `5 V` para el servomotor.
--   Señal de control PWM desde un GPIO del ESP32-H2.
--   Masa común entre la alimentación del servo y el ESP32-H2.
+El dispositivo se une a la red Zigbee como un dispositivo más. En Home Assistant aparece con:
 
-> El servomotor se controla mediante el componente `espressif/servo`,
-> que utiliza el periférico LEDC para generar la señal PWM.
+- Un **interruptor** (clúster `On/Off`) para activar el riego.
+- **Sensores** (clúster `Analog Input`) con las lecturas del depósito, suelo, temperatura, humedad y luz.
 
-### Sensor de nivel de agua
+El código está dividido por módulos: cada sensor o actuador tiene su propio *driver*, de modo que cambiar un componente no obliga a tocar la capa Zigbee.
 
-Para las primeras pruebas se utiliza un sensor de nivel de agua
-resistivo típico de Arduino.
-
-En esta primera iteración:
-
--   El sensor se alimenta directamente a `3,3 V`.
--   Se realiza únicamente la lectura del sensor.
--   La lógica de lectura pertenece al módulo `water_level`.
--   El control de alimentación del sensor se incorporará en una
-    iteración posterior.
-
-## Arquitectura del proyecto
-
-La aplicación se divide en módulos para mantener separadas la lógica de
-hardware y la integración Zigbee.
-
-``` text
+```text
 Regadera_Zigbee/
-├── main/
-│   ├── config/
-│   │   └── hardware_config.h
-│   ├── valve.c
-│   ├── valve.h
-│   ├── servo.c
-│   ├── servo.h
-│   ├── water_level.c
-│   ├── water_level.h
-│   ├── zigbee_endpoint.c
-│   ├── zigbee_endpoint.h
-│   ├── zigbee_stack.c
-│   ├── zigbee_stack.h
-│   ├── app_main.c
-│   └── idf_component.yml
-└── README.md
+├── app/        Lógica de la regadera (válvula/bomba, nivel de agua, LED de estado…)
+├── drivers/    Acceso al hardware (LED, actuadores, sensores)
+├── zigbee/     Endpoint, clústeres y stack Zigbee
+├── config/     Pines y parámetros
+└── main/       Punto de entrada
 ```
 
-### Responsabilidades de los módulos
+## Compilar y probar
 
-  -----------------------------------------------------------------------
-  Módulo                              Responsabilidad
-  ----------------------------------- -----------------------------------
-  `hardware_config.h`                 Definición de GPIO y configuración
-                                      física del prototipo.
+Requiere [ESP-IDF](https://docs.espressif.com/projects/esp-idf/) instalado.
 
-  `servo.c/.h`                        Control de bajo nivel del
-                                      servomotor.
-
-  `valve.c/.h`                        Lógica de apertura y cierre de la
-                                      válvula.
-
-  `water_level.c/.h`                  Lectura y gestión del sensor de
-                                      nivel de agua.
-
-  `zigbee_endpoint.c/.h`              Definición del endpoint,
-                                      dispositivo y clústeres Zigbee.
-
-  `zigbee_stack.c/.h`                 Inicialización de Zigbee,
-                                      callbacks, comandos y reporting.
-
-  `app_main.c`                        Punto de entrada de la aplicación.
-  -----------------------------------------------------------------------
-
-La intención es que `water_level` sea el propietario de la lógica del
-nivel de agua. El módulo Zigbee únicamente debe exponer y actualizar el
-valor correspondiente en el clúster Zigbee.
-
-## Integración Zigbee
-
-El dispositivo utiliza un endpoint principal, actualmente el endpoint
-`10`.
-
-### Clústeres utilizados
-
-  Clúster        ID         Función
-  -------------- ---------- ---------------------------------------------
-  Basic          `0x0000`   Información básica del dispositivo.
-  Identify       `0x0003`   Identificación del dispositivo.
-  Groups         `0x0004`   Gestión de grupos Zigbee.
-  On/Off         `0x0006`   Control de apertura y cierre de la válvula.
-  Analog Input   `0x000C`   Exposición del valor del nivel de agua.
-
-### Analog Input
-
-El clúster `Analog Input` se utiliza inicialmente como solución estándar
-para exponer el nivel de agua.
-
-El atributo principal es:
-
-``` text
-PresentValue
-ID: 0x0055
-Tipo: float
+```bash
+idf.py set-target esp32h2
+idf.py build flash monitor
 ```
 
-Durante las pruebas se ha comprobado que:
+Después, en Home Assistant: **ZHA → Añadir dispositivo** y deja que se empareje.
 
-1.  ZHA descubre el clúster `Analog Input`.
-2.  El atributo `PresentValue` puede leerse desde la administración de
-    clústeres.
-3.  El dispositivo puede exponer valores como `75.0`.
-
-Actualmente queda pendiente conseguir que Home Assistant mantenga y
-muestre la entidad del sensor en el panel principal del dispositivo. El
-problema parece estar relacionado con el proceso de descubrimiento y
-registro de entidades de ZHA, no con la lectura básica del atributo
-desde el ESP32-H2.
-
-## Dependencias
-
-El proyecto utiliza ESP-IDF y el gestor de componentes de Espressif.
-
-Dependencias principales:
-
-``` yaml
-dependencies:
-  espressif/esp-zboss-lib: "~1.6.0"
-  espressif/esp-zigbee-lib: "~1.6.0"
-  espressif/led_strip: "~3.0.0"
-  espressif/servo: "^1.0.0"
-```
-
-La versión de ESP-IDF utilizada debe ser compatible con la configuración
-del proyecto. El desarrollo actual se está realizando con ESP-IDF v6.0.
+> Si vuelves a emparejar el mismo dispositivo, elimínalo antes de ZHA y borra la memoria del ESP32 (`idf.py erase-flash`). Si no, ZHA reutiliza datos antiguos y puede no crear las entidades.
 
 ## Recursos
 
--   [ESP Zigbee SDK
-    Documentation](https://docs.espressif.com/projects/esp-zigbee-sdk)
--   [ESP Zigbee SDK
-    Repository](https://github.com/espressif/esp-zigbee-sdk)
--   [ESP-IDF
-    Documentation](https://docs.espressif.com/projects/esp-idf/)
--   [Espressif Servo
-    Component](https://components.espressif.com/components/espressif/servo)
--   [ESP-IoT-Solution Servo
-    Documentation](https://docs.espressif.com/projects/esp-iot-solution/en/latest/motor/servo.html)
--   [Home Assistant ZHA
-    Documentation](https://www.home-assistant.io/integrations/zha/)
-
+- [ESP Zigbee SDK](https://github.com/espressif/esp-zigbee-sdk)
+- [Documentación de ESP-IDF](https://docs.espressif.com/projects/esp-idf/)
+- [Integración ZHA de Home Assistant](https://www.home-assistant.io/integrations/zha/)
