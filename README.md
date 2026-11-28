@@ -6,7 +6,7 @@
 Regadera inteligente para macetas basada en un **ESP32-H2** que se integra en **Home Assistant** a través de **Zigbee (ZHA)**. Riega, mide y reporta; todo desde Home Assistant y sin Wi-Fi(necesitas una red Zigbee mediante un Dougle Zigbee).
 
 > [!WARNING]
-> **Proyecto en desarrollo.** Es un prototipo personal: el código, el cableado y la estructura cambian con frecuencia y algunas partes están a medio integrar. Puedes usarlo como referencia o punto de partida, pero no esperes que funcione "tal cual" ni que esté documentado al detalle.
+> **Proyecto en desarrollo.** Es un prototipo personal: el código, el cableado y la estructura cambian con frecuencia y algunas partes están a medio integrar. 
 
 ## Compatibilidad
 
