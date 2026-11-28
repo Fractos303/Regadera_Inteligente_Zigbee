@@ -45,15 +45,20 @@ static uint16_t zcl_illuminance(float lux)
 /*---------------------------------------------------------------
  * Escritura de atributos
  *-------------------------------------------------------------*/
-static void set_attr(uint16_t cluster_id, uint16_t attr_id, void *value)
+static void set_attr_ep(uint8_t endpoint, uint16_t cluster_id, uint16_t attr_id, void *value)
 {
     esp_zb_zcl_status_t st = esp_zb_zcl_set_attribute_val(
-        HA_ESP_VALVE_ENDPOINT, cluster_id, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
-        attr_id, value, false);
+        endpoint, cluster_id, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, attr_id, value, false);
 
     if (st != ESP_ZB_ZCL_STATUS_SUCCESS) {
-        ESP_LOGW(TAG, "Cluster 0x%04x attr 0x%04x: status 0x%x", cluster_id, attr_id, st);
+        ESP_LOGW(TAG, "EP %d cluster 0x%04x attr 0x%04x: status 0x%x", endpoint, cluster_id, attr_id, st);
     }
+}
+
+/* Atajo para el endpoint principal (10) */
+static void set_attr(uint16_t cluster_id, uint16_t attr_id, void *value)
+{
+    set_attr_ep(HA_ESP_VALVE_ENDPOINT, cluster_id, attr_id, value);
 }
 
 /*---------------------------------------------------------------
@@ -61,12 +66,12 @@ static void set_attr(uint16_t cluster_id, uint16_t attr_id, void *value)
  *-------------------------------------------------------------*/
 static void sensors_update_cb(uint8_t param)
 {
-    /* Nivel de agua (Analog Input) */
+    /* Nivel de agua (Analog Input, endpoint 10) */
     float level = water_level_update();
     set_attr(ESP_ZB_ZCL_CLUSTER_ID_ANALOG_INPUT,
              ESP_ZB_ZCL_ATTR_ANALOG_INPUT_PRESENT_VALUE_ID, &level);
 
-    /* Ambiente */
+    /* Ambiente (endpoint 10) */
     ambient_update();
 
     float t, h, l;
@@ -89,19 +94,25 @@ static void sensors_update_cb(uint8_t param)
                  ESP_ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID, &v);
     }
 
-    /* Humedad del suelo (0x0408): uint16 en centésimas de % */
+    /* Humedad del suelo (Analog Input, endpoint 11) */
     soil_moisture_update();
+
     float s;
-    if (soil_moisture_get(&s)) {
-        uint16_t v = zcl_humidity(s);       // misma conversión que la humedad del aire
-        set_attr(0x0408, 0x0000, &v);
+    bool has_soil = soil_moisture_get(&s);
+
+    if (has_soil) {
+        set_attr_ep(HA_ESP_SOIL_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_ANALOG_INPUT,
+                    ESP_ZB_ZCL_ATTR_ANALOG_INPUT_PRESENT_VALUE_ID, &s);
     }
 
-    ESP_LOGI(TAG, "Agua %.1f %% | %.1f °C | %.0f %% HR | %.0f lx",
+    ESP_LOGI(TAG, "Agua %.1f %% | %.1f °C | %.0f %% HR | %.0f lx | Suelo %.1f %%",
              level,
              ambient_get_temperature(&t) ? t : NAN,
              ambient_get_humidity(&h)    ? h : NAN,
-             ambient_get_lux(&l)         ? l : NAN);
+             ambient_get_lux(&l)         ? l : NAN,
+             has_soil ? s : NAN);
+
+    /* Reprogramar al final, cuando ya se ha publicado todo */
     esp_zb_scheduler_alarm(sensors_update_cb, 0, SENSORS_UPDATE_MS);
 }
 

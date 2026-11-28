@@ -8,7 +8,7 @@ static const char *TAG = "SOIL_MOISTURE";
 
 /* La humedad de la tierra cambia despacio: un filtro suave elimina el ruido
  * del ADC sin retrasar nada que importe. 1.0 = sin filtro. */
-#define SOIL_FILTER_ALPHA   0.3f
+#define SOIL_FILTER_ALPHA   1.0f        // sin filtro: el ADC ya promedia 16 muestras
 
 static float moisture   = 0.0f;
 static bool  has_value  = false;

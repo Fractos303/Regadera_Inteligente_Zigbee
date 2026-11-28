@@ -86,6 +86,6 @@
 #define SOIL_SENSOR_POWER_GPIO        GPIO_NUM_NC     // alimentado fijo a 3V3
 #define SOIL_SENSOR_POWER_SETTLE_MS   200
 #define SOIL_SENSOR_SAMPLES           16
-#define SOIL_MV_DRY                   2700            //TODO ← calibrar: en el aire
-#define SOIL_MV_WET                   1200            //TODO ← calibrar: en agua hasta la línea
+#define SOIL_MV_DRY                   2600            //TODO ← calibrar: en el aire
+#define SOIL_MV_WET                   870             //TODO ← calibrar: en agua hasta la línea
 #define SOIL_SENSOR_LOG_RAW           1
