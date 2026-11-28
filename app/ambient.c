@@ -5,6 +5,8 @@
 #include "climate_sensor.h"
 #include "light_sensor.h"
 
+#include "hardware_config.h"
+
 static const char *TAG = "AMBIENT";
 
 static float temperature = 0.0f;
@@ -35,8 +37,12 @@ void ambient_update(void)
     if (climate_ok) {
         float t, h;
         if (climate_sensor_read(&t, &h) == ESP_OK) {
-            temperature = t;
-            humidity    = h;
+            temperature = t + CLIMATE_TEMP_OFFSET_C;
+            humidity    = h + CLIMATE_HUM_OFFSET_PCT;
+
+            if (humidity < 0.0f)   humidity = 0.0f;
+            if (humidity > 100.0f) humidity = 100.0f;
+            
             has_climate = true;
         }
     }

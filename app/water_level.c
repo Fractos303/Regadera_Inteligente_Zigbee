@@ -8,8 +8,13 @@
 
 static const char *TAG = "WATER_LEVEL";
 
-#define WATER_LEVEL_DEMO          0       // 1 = simulación, 0 = sensor real
-#define WATER_LEVEL_FILTER_ALPHA  0.3f    // filtro paso bajo: 1.0 = sin filtro, más bajo = más suave
+#define WATER_LEVEL_DEMO          0         // 1 = simulación, 0 = sensor real
+#define WATER_LEVEL_FILTER_ALPHA  1.0f      // filtro paso bajo: 1.0 = sin filtro, más bajo = más suave
+
+#define WATER_LEVEL_EMPTY_PCT       5.0f    // por debajo → vacío
+#define WATER_LEVEL_REFILLED_PCT   15.0f    // por encima → rellenado
+
+static bool tank_empty = false;
 
 static float current_level = 0.0f;
 static bool  has_reading   = false;
@@ -54,10 +59,21 @@ float water_level_update(void)
        "Zigbee - Reporting y eventos inmediatos", va aquí: */
     // detect_events(current_level);
 
+    if (!tank_empty && current_level <= WATER_LEVEL_EMPTY_PCT) {
+        tank_empty = true;
+    } else if (tank_empty && current_level >= WATER_LEVEL_REFILLED_PCT) {
+        tank_empty = false;
+    }
+
     return current_level;
 }
 
 float water_level_get(void)
 {
     return current_level;
+}
+
+bool water_level_is_empty(void)
+{
+    return has_reading && tank_empty;
 }

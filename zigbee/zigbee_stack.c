@@ -27,9 +27,13 @@
 
 #include "zigbee_endpoint.h"
 #include "zigbee_config.h"
+#include "zigbee_actuators.h"
+
 #include "identify.h"
 #include "device_feedback.h" 
 #include "status_led.h"
+
+#include "irrigation.h"
 #include "water_level.h"
 
 #include "ambient.h"
@@ -45,11 +49,14 @@ static const char *TAG = "REGADERA_ZB_STACK";
 static esp_err_t deferred_driver_init(void)
 {
     ESP_ERROR_CHECK(status_led_init());
-    ESP_ERROR_CHECK(valve_init());
+    ESP_ERROR_CHECK(device_feedback_init());
+    ESP_ERROR_CHECK(irrigation_init());
     ESP_ERROR_CHECK(identify_init());
     ESP_ERROR_CHECK(water_level_init());
     ESP_ERROR_CHECK(ambient_init());
-    zigbee_sensors_start(); 
+
+    zigbee_sensors_start();
+    zigbee_actuators_start();
 
     device_feedback_boot();
     return ESP_OK;
@@ -127,9 +134,8 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
     if (message->info.dst_endpoint == HA_ESP_VALVE_ENDPOINT) {
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF) {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
-                valve_open = message->attribute.data.value ? *(bool *)message->attribute.data.value : valve_open;
-                ESP_LOGI(TAG, "Valve command: %s", valve_open ? "OPEN" : "CLOSE");
-                valve_set_state(valve_open ? VALVE_OPEN : VALVE_CLOSED);
+                bool on = message->attribute.data.value ? *(bool *)message->attribute.data.value : false;
+                zigbee_actuators_handle_on_off(on);
             }
         }
     }

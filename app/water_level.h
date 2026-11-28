@@ -23,6 +23,8 @@ float water_level_get(void);
  */
 float water_level_update(void);
 
+/** true si el depósito está vacío (con histéresis). */
+bool water_level_is_empty(void);
 
 #ifdef __cplusplus
 }
