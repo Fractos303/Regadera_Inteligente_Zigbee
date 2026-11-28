@@ -20,6 +20,7 @@
  * Endpoint utilizado por la regadera inteligente.
  */
 #define HA_ESP_VALVE_ENDPOINT          10
+#define HA_ESP_SOIL_ENDPOINT           11
 
 /**
  * Zigbee Home Automation Profile.

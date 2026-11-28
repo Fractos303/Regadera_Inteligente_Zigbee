@@ -10,6 +10,7 @@
 #include "zigbee_config.h"
 #include "water_level.h"
 #include "ambient.h"
+#include "soil_moisture.h"
 
 static const char *TAG = "ZB_SENSORS";
 
@@ -88,12 +89,19 @@ static void sensors_update_cb(uint8_t param)
                  ESP_ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID, &v);
     }
 
+    /* Humedad del suelo (0x0408): uint16 en centésimas de % */
+    soil_moisture_update();
+    float s;
+    if (soil_moisture_get(&s)) {
+        uint16_t v = zcl_humidity(s);       // misma conversión que la humedad del aire
+        set_attr(0x0408, 0x0000, &v);
+    }
+
     ESP_LOGI(TAG, "Agua %.1f %% | %.1f °C | %.0f %% HR | %.0f lx",
              level,
              ambient_get_temperature(&t) ? t : NAN,
              ambient_get_humidity(&h)    ? h : NAN,
              ambient_get_lux(&l)         ? l : NAN);
-
     esp_zb_scheduler_alarm(sensors_update_cb, 0, SENSORS_UPDATE_MS);
 }
 

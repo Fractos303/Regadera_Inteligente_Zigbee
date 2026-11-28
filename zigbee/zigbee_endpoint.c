@@ -4,8 +4,6 @@
 #include "esp_zigbee_endpoint.h"
 #include "zigbee_config.h"
 
-#include "water_level.h"
-
 esp_zb_ep_list_t *zigbee_create_endpoint(void)
 {
     esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
@@ -61,8 +59,6 @@ esp_zb_ep_list_t *zigbee_create_endpoint(void)
         .status_flags   = ESP_ZB_ZCL_ANALOG_INPUT_STATUS_FLAG_NORMAL,
     };
 
-    analog_input_cfg.present_value = water_level_get();
-
     // REVIEW: Add attributes to the Analog Input cluster
     esp_zb_attribute_list_t *analog_input = esp_zb_analog_input_cluster_create(&analog_input_cfg);
 
@@ -79,9 +75,19 @@ esp_zb_ep_list_t *zigbee_create_endpoint(void)
     esp_zb_analog_input_cluster_add_attr(analog_input, ESP_ZB_ZCL_ATTR_ANALOG_INPUT_MAX_PRESENT_VALUE_ID,   &ai_max);
 
     esp_zb_cluster_list_add_analog_input_cluster(cluster_list, analog_input, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    //
 
-    esp_zb_cluster_list_add_analog_input_cluster(cluster_list, analog_input, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+
+    /* Soil Moisture (0x0408): ZHA lo reconoce como humedad del suelo.
+     * El SDK no trae función para crearlo, así que se crea a mano. */
+    static uint16_t soil_value = 0xFFFF;      // "desconocido" hasta la primera lectura
+    static uint16_t soil_min   = 0;           // 0,00 %
+    static uint16_t soil_max   = 10000;       // 100,00 %
+
+    esp_zb_attribute_list_t *soil = esp_zb_zcl_attr_list_create(0x0408);
+    esp_zb_custom_cluster_add_custom_attr(soil, 0x0000, ESP_ZB_ZCL_ATTR_TYPE_U16, ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY | ESP_ZB_ZCL_ATTR_ACCESS_REPORTING, &soil_value);
+    esp_zb_custom_cluster_add_custom_attr(soil, 0x0001, ESP_ZB_ZCL_ATTR_TYPE_U16, ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY, &soil_min);
+    esp_zb_custom_cluster_add_custom_attr(soil, 0x0002, ESP_ZB_ZCL_ATTR_TYPE_U16, ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY, &soil_max);
+    esp_zb_cluster_list_add_custom_cluster(cluster_list, soil, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 
    //NOTE: Add the endpoint to the endpoint list
     esp_zb_ep_list_add_ep(ep_list, cluster_list, endpoint);

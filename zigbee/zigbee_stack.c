@@ -39,6 +39,8 @@
 #include "ambient.h"
 #include "zigbee_sensors.h"
 
+#include "soil_moisture.h"
+
 #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile the Regadera (End Device) source code.
 #endif
@@ -54,6 +56,8 @@ static esp_err_t deferred_driver_init(void)
     ESP_ERROR_CHECK(identify_init());
     ESP_ERROR_CHECK(water_level_init());
     ESP_ERROR_CHECK(ambient_init());
+
+    ESP_ERROR_CHECK(soil_moisture_init());
 
     zigbee_sensors_start();
     zigbee_actuators_start();
@@ -124,7 +128,6 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message)
 {
     esp_err_t ret = ESP_OK;
-    bool valve_open = 0;
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)",
